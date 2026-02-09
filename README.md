@@ -41,13 +41,13 @@
 
 2. **点击部署按钮**
 
-   点击 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/qazzxxx/NotionNav&env=NOTION_PAGE_ID&envDescription=Notion%20Page%20ID&envLink=https://github.com/qazzxxx/NotionNav%23environment-configuration) 按钮进行部署
+   点击 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/qazzxxx/NotionNav&env=NOTION_DATABASE_ID&envDescription=Notion%20Database%20ID&envLink=https://github.com/qazzxxx/NotionNav%23environment-configuration) 按钮进行部署
 
 3. **配置环境变量**
 
    在 Vercel 部署页面中，需要配置以下环境变量：
 
-   - `NOTION_PAGE_ID`: 你的 Notion 页面 ID（URL 中的 32 位字母与数字字符串）
+   - `NOTION_DATABASE_ID`: 你的 Notion 数据库 ID（URL 中的 32 位字母与数字字符串）
 
 4. **完成部署**
 
@@ -55,25 +55,23 @@
 
 ### 环境变量说明
 
-| 变量名               | 必需 | 说明                                                  |
-| -------------------- | ---- | ----------------------------------------------------- |
-| `NOTION_PAGE_ID`     | ✅   | Notion 页面 ID                                        |
-| `NOTION_TOKEN`       | ❌   | Notion 私有 Token（可选，设置后可访问未公开的数据库） |
-| `NOTION_ACTIVE_USER` | ❌   | Notion 活跃用户 ID（可选，用于访问未分享的文档）      |
+| 变量名                | 必需 | 说明                                             |
+| --------------------- | ---- | ------------------------------------------------ |
+| `NOTION_DATABASE_ID`  | ✅   | Notion 数据库 ID                                  |
+| `NOTION_TOKEN`        | ✅   | Notion Integration Token                          |
+| `NOTION_PAGE_ID`      | ❌   | 兼容旧配置（等同于 `NOTION_DATABASE_ID`，可省略） |
 
-### 🔐 访问未分享的 Notion 文档
+### 🔐 访问私有 Notion 数据库
 
-如果你需要访问未公开分享的 Notion 文档，需要配置以下环境变量：
+官方 API 只支持通过 Integration 访问被分享的数据库：
 
-1. **获取 Notion Token 和 Notion Active User ID**
-
-   - 两者都可以从您的 Web 浏览器中检索。查看工作流程后，打开 > Application > Cookie >的开发工具，然后复制 和 。分别是 activeUser： notion_user_id， authToken： token_v2。
-
-2. **配置环境变量**
+1. **创建 Notion Integration 并复制 Token**
+2. **在数据库页面分享给该 Integration**
+3. **配置环境变量**
 
    ```bash
-   NOTION_TOKEN=your_notion_token_here
-   NOTION_ACTIVE_USER=your_user_id_here
+   NOTION_DATABASE_ID=your_database_id_here
+   NOTION_TOKEN=your_integration_token_here
    ```
 
 ### 🖼️ 设置背景图

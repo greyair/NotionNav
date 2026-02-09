@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { NotionAPI } from "notion-client";
-import {
-  NOTION_CONFIG,
-  NOTION_PROPERTY_MAPPING,
-  getNotionAPIConfig,
-} from "@/config/notion";
-import {
-  NotionDatabase,
-  NotionPropertyValue,
-  NotionPropertyMapping,
-} from "@/types";
-
-const api = new NotionAPI(getNotionAPIConfig());
+import type { Client } from "@notionhq/client";
+import type {
+  PageObjectResponse,
+  PartialPageObjectResponse,
+} from "@notionhq/client/build/src/api-endpoints";
+import { NOTION_CONFIG, getNotionClient } from "@/config/notion";
+import { getPropertyMultiValues, isFullPage } from "@/utils/notionOfficial";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,11 +18,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const databaseId = NOTION_CONFIG.DEFAULT_DATABASE_ID;
+    if (!databaseId) {
+      return NextResponse.json(
+        { error: "Database ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const notion = getNotionClient();
+
     // 获取数据库中的所有角色
-    const database = (await api.getPage(
-      NOTION_CONFIG.DEFAULT_PAGE_ID
-    )) as NotionDatabase;
-    const allRoles = getAllRolesFromDatabase(database);
+    const allRoles = await getAllRolesFromDatabase(notion, databaseId);
 
     // 验证密码是否匹配任何角色
     if (allRoles.includes(password)) {
@@ -49,113 +50,46 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getAllRolesFromDatabase(database: NotionDatabase): string[] {
-  const roles: string[] = [];
+async function getAllRolesFromDatabase(
+  notion: Client,
+  databaseId: string
+): Promise<string[]> {
+  const pages = await queryAllPages(notion, databaseId);
+  const roles = new Set<string>();
 
-  if (!database.block) {
-    console.log("No block data found in database");
-    return roles;
-  }
+  for (const page of pages) {
+    if (!isFullPage(page)) {
+      continue;
+    }
 
-  // 获取属性映射
-  const propertyMapping = getPropertyMapping(database);
-
-  // 遍历数据库的块
-  for (const blockId of Object.keys(database.block)) {
-    const block = database.block[blockId];
-
-    // 检查是否是数据库项
-    if (block.value?.type === "page") {
-      const page = block.value;
-
-      // 获取角色属性
-      const rolesValue = getPropertyValueByMapping(
-        page.properties,
-        propertyMapping,
-        "roles"
-      );
-
-      if (rolesValue) {
-        // 分割角色字符串并添加到列表中
-        const pageRoles = rolesValue
-          .split(",")
-          .map((role: string) => role.trim());
-        roles.push(...pageRoles);
+    const pageRoles = getPropertyMultiValues(page.properties, "roles");
+    for (const role of pageRoles) {
+      if (role) {
+        roles.add(role);
       }
     }
   }
 
-  // 去重并返回
-  return [...new Set(roles)];
+  return [...roles];
 }
 
-// 获取属性映射
-function getPropertyMapping(database: NotionDatabase): NotionPropertyMapping {
-  const mapping: NotionPropertyMapping = {};
+async function queryAllPages(
+  notion: Client,
+  databaseId: string
+): Promise<(PageObjectResponse | PartialPageObjectResponse)[]> {
+  const results: (PageObjectResponse | PartialPageObjectResponse)[] = [];
+  let cursor: string | undefined = undefined;
 
-  if (!database.collection) {
-    console.log("No collection found");
-    return mapping;
-  }
+  do {
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      start_cursor: cursor,
+      page_size: 100,
+    });
 
-  // 获取第一个collection
-  const collectionId = Object.keys(database.collection)[0];
-  const collection = database.collection[collectionId];
+    results.push(...response.results);
+    cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+  } while (cursor);
 
-  if (!collection?.value?.schema) {
-    console.log("No schema found in collection");
-    return mapping;
-  }
-
-  const schema = collection.value.schema;
-
-  // 遍历schema，创建属性映射
-  for (const [propertyId, propertyInfo] of Object.entries(schema)) {
-    const property = propertyInfo;
-    const propertyName = property.name?.toLowerCase();
-
-    if (propertyName) {
-      mapping[propertyId] = propertyName;
-    }
-  }
-
-  return mapping;
-}
-
-// 通过映射获取属性值
-function getPropertyValueByMapping(
-  properties: Record<string, NotionPropertyValue[]> | undefined,
-  propertyMapping: NotionPropertyMapping,
-  targetProperty: string
-): string | undefined {
-  if (!properties) {
-    return undefined;
-  }
-
-  // 查找匹配的属性ID
-  for (const [propertyId, propertyName] of Object.entries(propertyMapping)) {
-    if (propertyName === targetProperty) {
-      const property = properties[propertyId];
-      if (property) {
-        // 尝试不同的访问路径
-        const value = property[0]?.[0] || property[0] || property;
-        return typeof value === "string" ? value : undefined;
-      }
-    }
-  }
-
-  // 如果没有找到映射，尝试直接访问
-  for (const propertyName of NOTION_PROPERTY_MAPPING[
-    targetProperty.toUpperCase() as keyof typeof NOTION_PROPERTY_MAPPING
-  ] || []) {
-    const property = properties[propertyName];
-    if (property) {
-      const value = property[0]?.[0] || property[0] || property;
-      if (value && typeof value === "string") {
-        return value;
-      }
-    }
-  }
-
-  return undefined;
+  return results;
 }

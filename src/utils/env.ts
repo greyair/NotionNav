@@ -4,18 +4,18 @@
  */
 
 /**
- * 获取 Notion 页面 ID
- * 优先级：环境变量 > 默认值
+ * 获取 Notion 数据库 ID
+ * 优先级：环境变量 > 兼容旧变量
+ */
+export function getNotionDatabaseId(): string | undefined {
+  return process.env.NOTION_DATABASE_ID || process.env.NOTION_PAGE_ID;
+}
+
+/**
+ * 兼容旧的 Notion 页面 ID 读取
  */
 export function getNotionPageId(): string {
-  const envPageId = process.env.NOTION_PAGE_ID;
-
-  if (envPageId) {
-    return envPageId;
-  }
-
-  const defaultPageId = "219692535678800fbefffd8ae6924454";
-  return defaultPageId;
+  return getNotionDatabaseId() || "";
 }
 
 /**
@@ -43,15 +43,19 @@ export function validateEnvironment(): {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // 检查必需的环境变量
-  if (!process.env.NOTION_PAGE_ID) {
-    warnings.push("NOTION_PAGE_ID not set, using default value");
+  const databaseId = getNotionDatabaseId();
+
+  if (!databaseId) {
+    errors.push("NOTION_DATABASE_ID (or NOTION_PAGE_ID) is required");
+  }
+
+  if (!process.env.NOTION_TOKEN) {
+    errors.push("NOTION_TOKEN is required for the official Notion API");
   }
 
   // 检查环境变量格式
-  const pageId = process.env.NOTION_PAGE_ID;
-  if (pageId && !/^[a-f0-9-]+$/i.test(pageId)) {
-    errors.push("NOTION_PAGE_ID format is invalid");
+  if (databaseId && !/^[a-f0-9-]+$/i.test(databaseId)) {
+    errors.push("NOTION_DATABASE_ID format is invalid");
   }
 
   return {
@@ -67,6 +71,7 @@ export function validateEnvironment(): {
 export function getEnvironmentInfo() {
   return {
     nodeEnv: process.env.NODE_ENV,
+    notionDatabaseId: process.env.NOTION_DATABASE_ID || "not set",
     notionPageId: process.env.NOTION_PAGE_ID || "not set",
     notionToken: process.env.NOTION_TOKEN ? "set" : "not set",
     notionActiveUser: process.env.NOTION_ACTIVE_USER ? "set" : "not set",

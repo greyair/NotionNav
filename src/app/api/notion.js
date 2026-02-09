@@ -1,7 +1,11 @@
-import { NotionAPI } from "notion-client";
-import { getNotionAPIConfig } from "@/config/notion";
-
-const api = new NotionAPI(getNotionAPIConfig());
+import { Client } from "@notionhq/client";
+import { getNotionToken } from "@/utils/env";
+import {
+  extractIconValue,
+  getPropertyMultiValues,
+  getPropertyValue,
+  isFullPage,
+} from "@/utils/notionOfficial";
 
 export default async function handler(req, res) {
   try {
@@ -11,11 +15,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Database ID is required" });
     }
 
-    // fetch database content
-    const database = await api.getPage(databaseId);
+    if (!getNotionToken()) {
+      return res.status(400).json({ error: "NOTION_TOKEN is required" });
+    }
 
-    // 解析数据库内容，提取菜单项
-    const menuItems = parseDatabaseToMenuItems(database);
+    const notion = new Client({ auth: getNotionToken() });
+
+    const pages = await queryAllPages(notion, databaseId);
+    const menuItems = parsePagesToMenuItems(pages);
 
     res.status(200).json({ menuItems });
   } catch (error) {
@@ -24,76 +31,64 @@ export default async function handler(req, res) {
   }
 }
 
-function parseDatabaseToMenuItems(database) {
+async function queryAllPages(notion, databaseId) {
+  const results = [];
+  let cursor = undefined;
+
+  do {
+    const response = await notion.databases.query({
+      database_id: databaseId,
+      start_cursor: cursor,
+      page_size: 100,
+    });
+
+    results.push(...response.results);
+    cursor = response.has_more ? response.next_cursor ?? undefined : undefined;
+  } while (cursor);
+
+  return results;
+}
+
+function parsePagesToMenuItems(pages) {
   const menuItems = [];
 
-  // 遍历数据库的块
-  for (const blockId of Object.keys(database.block)) {
-    const block = database.block[blockId];
+  for (const page of pages) {
+    if (!isFullPage(page)) {
+      continue;
+    }
 
-    // 检查是否是数据库项
-    if (block.type === "page" && block.parent_id === database.id) {
-      const page = database.block[blockId];
+    const title = getPropertyValue(page.properties, "title") || "Untitled";
+    const description = getPropertyValue(page.properties, "description");
+    const href = getPropertyValue(page.properties, "url");
+    let avatar = getPropertyValue(page.properties, "avatar");
 
-      // 提取页面属性
-      const title =
-        page.properties?.title?.[0]?.[0] ||
-        page.properties?.Name?.[0]?.[0] ||
-        "Untitled";
+    if (!avatar) {
+      avatar = extractIconValue(page.icon);
+    }
 
-      const description =
-        page.properties?.Description?.[0]?.[0] ||
-        page.properties?.description?.[0]?.[0] ||
-        "";
+    const category = getPropertyValue(page.properties, "category") || "other";
+    const roles = getPropertyMultiValues(page.properties, "roles");
+    const lanHref = getPropertyValue(page.properties, "lanurl");
+    const target = getPropertyValue(page.properties, "target");
+    const lastEditedTime = page.last_edited_time
+      ? Date.parse(page.last_edited_time)
+      : 0;
 
-      const href =
-        page.properties?.URL?.[0]?.[0] ||
-        page.properties?.url?.[0]?.[0] ||
-        page.properties?.Link?.[0]?.[0] ||
-        "";
-
-      // 优先级：Icon属性 > Avatar属性 > 页面图标 > 空
-      const avatar =
-        page.properties?.Icon?.[0]?.[0] ||
-        page.properties?.Avatar?.[0]?.[0] ||
-        page.format?.page_icon ||
-        "";
-
-      const category =
-        page.properties?.Category?.[0]?.[0] ||
-        page.properties?.Type?.[0]?.[0] ||
-        "other";
-
-      const roles = page.properties?.Roles?.[0]?.[0]?.split(",") ||
-        page.properties?.Access?.[0]?.[0]?.split(",") || ["guest"];
-
-      const lanHref =
-        page.properties?.LanURL?.[0]?.[0] ||
-        page.properties?.lanHref?.[0]?.[0] ||
-        "";
-
-        const target =
-        page.properties?.Target?.[0]?.[0] ||
-        page.properties?.target?.[0]?.[0] ||
-        "";
-
-      // 获取最后编辑时间
-      const lastEditedTime = page.last_edited_time || 0;
-
-      if (title && href) {
-        menuItems.push({
-          id: blockId,
-          title: title.trim(),
-          description: description.trim(),
-          href: href.trim(),
-          lanHref: lanHref.trim() || undefined,
-          target: target.trim() || undefined,
-          avatar: avatar.trim() || undefined,
-          roles: roles.map((role) => role.trim()),
-          category: category.trim(),
-          lastEditedTime: lastEditedTime, // 添加最后编辑时间
-        });
-      }
+    if (title && href) {
+      menuItems.push({
+        id: page.id,
+        title: title.trim(),
+        description: description.trim(),
+        href: href.trim(),
+        lanHref: lanHref.trim() || undefined,
+        target: target.trim() || undefined,
+        avatar: avatar.trim() || undefined,
+        roles: (roles.length > 0 ? roles : ["guest"]).map((role) =>
+          role.trim()
+        ),
+        category: category.trim(),
+        lastEditedTime,
+      });
     }
   }
 

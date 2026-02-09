@@ -1,21 +1,17 @@
-import {
-  getNotionPageId,
-  getNotionToken,
-  getNotionActiveUser,
-  getNotionApiBaseUrl,
-} from "@/utils/env";
+import { Client } from "@notionhq/client";
+import { getNotionDatabaseId, getNotionToken } from "@/utils/env";
 
 // Notion配置
 export const NOTION_CONFIG = {
   // 使用环境变量管理工具获取页面 ID
-  get DEFAULT_PAGE_ID() {
-    return getNotionPageId();
+  get DEFAULT_DATABASE_ID() {
+    return getNotionDatabaseId();
   },
 
   // 如果有多个数据库，可以在这里配置
   DATABASES: {
     get MENU() {
-      return getNotionPageId();
+      return getNotionDatabaseId();
     },
     // 可以添加更多数据库
     // NEWS: "your-news-database-id",
@@ -24,89 +20,16 @@ export const NOTION_CONFIG = {
 };
 
 /**
- * 获取 Notion API 配置
- * 统一管理 Notion API 的初始化参数
+ * 获取 Notion 官方 API Client
  */
-export function getNotionAPIConfig() {
+export function getNotionClient() {
   const token = getNotionToken();
-  const activeUser = getNotionActiveUser();
 
-  // 如果同时有 token 和 activeUser，使用完整配置
-  if (token && activeUser) {
-    return {
-      apiBaseUrl: getNotionApiBaseUrl(),
-      activeUser,
-      authToken: token,
-      userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      kyOptions: {
-        // 全局 Ky 配置
-        hooks: {
-          beforeRequest: [
-            (request: Request) => {
-              const url = request.url.toString()
-              if (url.includes('/api/v3/syncRecordValues')) {
-                return new Request(
-                  url.replace('/api/v3/syncRecordValues', '/api/v3/syncRecordValuesMain'),
-                  request
-                )
-              }
-              return request
-            }
-          ]
-        }
-      }
-
-    }
+  if (!token) {
+    throw new Error("NOTION_TOKEN is required for the official Notion API");
   }
 
-  // 如果只有 token，使用 token 配置
-  if (token) {
-    return {
-      apiBaseUrl: getNotionApiBaseUrl(),
-      authToken: token,
-      userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      kyOptions: {
-        // 全局 Ky 配置
-        hooks: {
-          beforeRequest: [
-            (request: Request) => {
-              const url = request.url.toString()
-              if (url.includes('/api/v3/syncRecordValues')) {
-                return new Request(
-                  url.replace('/api/v3/syncRecordValues', '/api/v3/syncRecordValuesMain'),
-                  request
-                )
-              }
-              return request
-            }
-          ]
-        }
-      }
-    }
-  }
-
-  // 如果都没有，返回 undefined（使用默认配置）
-  return {
-    apiBaseUrl: getNotionApiBaseUrl(),
-    userTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    kyOptions: {
-      // 全局 Ky 配置
-      hooks: {
-        beforeRequest: [
-          (request: Request) => {
-            const url = request.url.toString()
-            if (url.includes('/api/v3/syncRecordValues')) {
-              return new Request(
-                url.replace('/api/v3/syncRecordValues', '/api/v3/syncRecordValuesMain'),
-                request
-              )
-            }
-            return request
-          }
-        ]
-      }
-    }
-  };
+  return new Client({ auth: token });
 }
 
 // Notion数据库属性映射
