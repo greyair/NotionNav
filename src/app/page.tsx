@@ -6,12 +6,13 @@ import { Background } from "@/components/Background";
 import { GroupedNotionMenu } from "@/components/GroupedNotionMenu";
 import { FavoritesMenu } from "@/components/FavoritesMenu";
 import { MAX_BG_COUNT } from "@/config/constants";
-import { BingImage, NavMenuItem } from "@/types";
+import { BingImage, NavMenuItem, ViewMode } from "@/types";
 import { storage } from "@/utils/storage";
 import { useHitokoto } from "@/hooks/useHitokoto";
 import { useDeviceDetect } from "@/hooks/useDeviceDetect";
 import { useNotionMenu } from "@/hooks/useNotionMenu";
 import { useNotionRoles } from "@/hooks/useNotionRoles";
+import { useSiteConfig } from "@/hooks/useSiteConfig";
 import { useFavorites } from "@/hooks/useFavorites";
 import { SearchBar } from "@/components/SearchBar";
 import { LanToggle } from "@/components/LanToggle";
@@ -44,6 +45,10 @@ function HomeContent() {
     loading: _rolesLoading,
     error: _rolesError,
   } = useNotionRoles();
+  const {
+    siteConfig,
+    categories: configCategories,
+  } = useSiteConfig();
   const isApple = useDeviceDetect();
 
   // States
@@ -51,6 +56,10 @@ function HomeContent() {
   const [isLiquidGlass, setIsLiquidGlass] = useState(() => {
     const savedTheme = storage.get('theme');
     return savedTheme === 'liquid-glass';
+  });
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const savedViewMode = storage.get("viewMode") as ViewMode | null;
+    return savedViewMode || "grid";
   });
   const [embedUrl, setEmbedUrl] = useState('');
   const [showEmbedModal, setShowEmbedModal] = useState(false);
@@ -80,6 +89,18 @@ function HomeContent() {
     }
   }, []);
 
+  useEffect(() => {
+    const savedViewMode = storage.get("viewMode") as ViewMode | null;
+    const configViewMode = siteConfig.default_view as ViewMode | undefined;
+
+    if (!savedViewMode && configViewMode) {
+      if (["grid", "compact", "list"].includes(configViewMode)) {
+        setViewMode(configViewMode);
+        storage.set("viewMode", configViewMode);
+      }
+    }
+  }, [siteConfig]);
+
   // Utility functions
   // Theme handling
 
@@ -96,6 +117,11 @@ function HomeContent() {
     setIsLiquidGlass(!isLiquidGlass);
     storage.set('theme', !isLiquidGlass ? 'liquid-glass' : 'default');
   }, [isLiquidGlass]);
+
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    storage.set("viewMode", mode);
+  }, []);
 
   // 内外网切换处理
   const handleNetworkToggle = useCallback(() => {
@@ -439,8 +465,10 @@ function HomeContent() {
         onClose={() => setIsSettingsOpen(false)}
         onThemeToggle={handleThemeToggle}
         onNetworkToggle={handleNetworkToggle}
+        onViewModeChange={handleViewModeChange}
         isLiquidGlass={isLiquidGlass}
         isLan={isLan}
+        viewMode={viewMode}
       />
       
 
@@ -454,6 +482,7 @@ function HomeContent() {
                 favorites={favorites}
                 removeFavorite={removeFavorite}
                 isLiquidGlass={isLiquidGlass}
+                viewMode={viewMode}
               />
 
               {/* 分组菜单 */}
@@ -466,6 +495,8 @@ function HomeContent() {
                 isFavorite={isFavorite}
                 categoryOrder={categoryOrder}
                 isLiquidGlass={isLiquidGlass}
+                viewMode={viewMode}
+                categories={configCategories}
               />
             </div>
           )}

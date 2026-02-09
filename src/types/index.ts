@@ -11,6 +11,7 @@ export interface NavMenuItem {
   isFavorite?: boolean; // 添加收藏状态
   roles: string[]; // 角色权限
   category?: string; // 添加分类属性
+  subcategory?: string; // 添加子分类属性
   menuTitle?: string; // 菜单标题（用于HTML标签名）
   menuIcon?: string; // 菜单图标
   lastEditedTime?: number; // 最后编辑时间（时间戳）
@@ -20,6 +21,16 @@ export interface MenuData {
   title: string;
   icon: string;
   items: NavMenuItem[];
+}
+
+export type ViewMode = "grid" | "compact" | "list";
+
+export interface ConfigCategory {
+  id: string;
+  name: string;
+  parentId?: string;
+  order?: number;
+  status?: string;
 }
 
 export interface ImageLandscape {

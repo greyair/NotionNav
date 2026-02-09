@@ -41,13 +41,14 @@
 
 2. **点击部署按钮**
 
-   点击 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/qazzxxx/NotionNav&env=NOTION_DATABASE_ID&envDescription=Notion%20Database%20ID&envLink=https://github.com/qazzxxx/NotionNav%23environment-configuration) 按钮进行部署
+   点击 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/qazzxxx/NotionNav&env=NOTION_LINKS_DATABASE_ID,NOTION_CONFIG_DATABASE_ID&envDescription=Notion%20Database%20IDs&envLink=https://github.com/qazzxxx/NotionNav%23environment-configuration) 按钮进行部署
 
 3. **配置环境变量**
 
    在 Vercel 部署页面中，需要配置以下环境变量：
 
-   - `NOTION_DATABASE_ID`: 你的 Notion 数据库 ID（URL 中的 32 位字母与数字字符串）
+   - `NOTION_LINKS_DATABASE_ID`: 导航链接数据库 ID（URL 中的 32 位字母与数字字符串）
+   - `NOTION_CONFIG_DATABASE_ID`: 配置数据库 ID（网站配置与分类配置）
 
 4. **完成部署**
 
@@ -55,11 +56,11 @@
 
 ### 环境变量说明
 
-| 变量名                | 必需 | 说明                                             |
-| --------------------- | ---- | ------------------------------------------------ |
-| `NOTION_DATABASE_ID`  | ✅   | Notion 数据库 ID                                  |
-| `NOTION_TOKEN`        | ✅   | Notion Integration Token                          |
-| `NOTION_PAGE_ID`      | ❌   | 兼容旧配置（等同于 `NOTION_DATABASE_ID`，可省略） |
+| 变量名                      | 必需 | 说明                                                                  |
+| --------------------------- | ---- | --------------------------------------------------------------------- |
+| `NOTION_LINKS_DATABASE_ID`  | ✅   | 导航链接数据库 ID                                                     |
+| `NOTION_CONFIG_DATABASE_ID` | ✅   | 配置数据库 ID（网站配置 + 分类配置）                                  |
+| `NOTION_TOKEN`              | ✅   | Notion Integration Token                                               |
 
 ### 🔐 访问私有 Notion 数据库
 
@@ -70,7 +71,8 @@
 3. **配置环境变量**
 
    ```bash
-   NOTION_DATABASE_ID=your_database_id_here
+   NOTION_LINKS_DATABASE_ID=your_links_database_id_here
+   NOTION_CONFIG_DATABASE_ID=your_config_database_id_here
    NOTION_TOKEN=your_integration_token_here
    ```
 

@@ -1,4 +1,4 @@
-import { NavMenuItem } from "@/types";
+import { NavMenuItem, ViewMode } from "@/types";
 import { Avatar } from "./Avatar";
 import LiquidGlassWrapper from "./LiquidGlassWrapper";
 
@@ -8,6 +8,7 @@ interface FavoritesMenuProps {
   favorites: NavMenuItem[];
   removeFavorite: (href: string) => void;
   isLiquidGlass: boolean;
+  viewMode: ViewMode;
 }
 
 export const FavoritesMenu = ({
@@ -16,6 +17,7 @@ export const FavoritesMenu = ({
   favorites,
   removeFavorite,
   isLiquidGlass,
+  viewMode,
 }: FavoritesMenuProps) => {
   // 过滤用户有权限访问的收藏
   const userFavorites = favorites.filter(
@@ -30,6 +32,15 @@ export const FavoritesMenu = ({
   const handleRemoveFavorite = (href: string) => {
     removeFavorite(href);
   };
+
+  const isList = viewMode === "list";
+  const isCompact = viewMode === "compact";
+
+  const gridClass = isList
+    ? "grid grid-cols-1 gap-3"
+    : isCompact
+      ? "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3"
+      : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4";
 
   return (
     <div className="mb-8">
@@ -46,13 +57,13 @@ export const FavoritesMenu = ({
         </h2>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+      <div className={gridClass}>
         {userFavorites.map((item) => {
           const url = isLan ? item.lanHref || item.href : item.href;
 
           return (
             <LiquidGlassWrapper key={item.href} className="relative rounded-2xl" isActive={isLiquidGlass}>
-              <div className="group relative rounded-xl p-4 cursor-pointer"
+              <div className={`group relative rounded-xl cursor-pointer ${isList ? "p-3" : "p-4"}`}
               style={{ backgroundColor: isLiquidGlass ? "transparent": "rgba(42, 42, 42, 0.42)" }}>
                 {/* 移除按钮 - 优化样式 */}
                 <button
@@ -71,33 +82,53 @@ export const FavoritesMenu = ({
                   // href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center"
+                  className={isList ? "block" : "block text-center"}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => window.handleLinkClick && window.handleLinkClick(e, url, item.target)}
                 >
-                <div className="flex flex-col items-center space-y-2">
-                  {/* 图标 */}
-                  <div className="relative">
+                {isList ? (
+                  <div className="flex items-center gap-3">
                     <Avatar
                       src={item.avatar}
                       alt={item.title}
                       href={item.href}
-                      size={32}
+                      size={28}
                       className="rounded-lg"
                     />
-                  </div>
-
-                  {/* 标题 */}
-                  <div className="text-center">
-                    <div className="text-white text-sm font-medium truncate">
-                      {item.title}
-                    </div>
-                    {item.description && (
-                      <div className="text-gray-400 text-xs truncate mt-1">
-                        {item.description}
+                    <div className="min-w-0">
+                      <div className="text-white text-sm font-medium truncate">
+                        {item.title}
                       </div>
-                    )}
+                      {item.description && (
+                        <div className="text-gray-400 text-xs truncate mt-1">
+                          {item.description}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="relative">
+                      <Avatar
+                        src={item.avatar}
+                        alt={item.title}
+                        href={item.href}
+                        size={isCompact ? 28 : 32}
+                        className="rounded-lg"
+                      />
+                    </div>
+
+                    <div className="text-center">
+                      <div className="text-white text-sm font-medium truncate">
+                        {item.title}
+                      </div>
+                      {item.description && (
+                        <div className="text-gray-400 text-xs truncate mt-1">
+                          {item.description}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </a>
             </div>
             </LiquidGlassWrapper>

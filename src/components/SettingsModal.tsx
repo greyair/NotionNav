@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import LiquidGlassWrapper from './LiquidGlassWrapper';
+import { ViewMode } from "@/types";
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onThemeToggle: () => void;
   onNetworkToggle: () => void;
+  onViewModeChange: (mode: ViewMode) => void;
   isLiquidGlass: boolean;
   isLan: boolean;
+  viewMode: ViewMode;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -15,8 +18,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   onThemeToggle,
   onNetworkToggle,
+  onViewModeChange,
   isLiquidGlass,
   isLan,
+  viewMode,
 }) => {
   useEffect(() => {
     const scrollContainer = document.getElementById('main-content') || document.body;
@@ -68,6 +73,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             <div className="space-y-4">
+              <div className="p-3 rounded-lg hover:bg-white/10 transition-colors">
+                <div className="text-white mb-3">
+                  <div className="font-medium">视图模式</div>
+                  <div className="text-sm text-white/70">选择网格/紧凑/列表</div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { label: "网格", value: "grid" },
+                    { label: "紧凑", value: "compact" },
+                    { label: "列表", value: "list" },
+                  ] as const).map((mode) => (
+                    <button
+                      key={mode.value}
+                      onClick={() => onViewModeChange(mode.value)}
+                      className={`rounded-lg px-3 py-2 text-sm transition-colors ${
+                        viewMode === mode.value
+                          ? "bg-blue-600 text-white"
+                          : "bg-white/10 text-white/70 hover:bg-white/20"
+                      }`}
+                    >
+                      {mode.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 主题设置 */}
               <div className="flex items-center justify-between p-3 rounded-lg hover:bg-white/10 transition-colors">
                 <div className="text-white">

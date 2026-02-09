@@ -3,21 +3,24 @@ import {
   validateEnvironment,
   getEnvironmentInfo,
   getNotionToken,
-  getNotionDatabaseId,
+  getNotionConfigDatabaseId,
+  getNotionLinksDatabaseId,
 } from "@/utils/env";
 
 export async function GET(request: NextRequest) {
   try {
     const validation = validateEnvironment();
     const envInfo = getEnvironmentInfo();
-    const currentDatabaseId = getNotionDatabaseId();
+    const currentLinksDatabaseId = getNotionLinksDatabaseId();
+    const currentConfigDatabaseId = getNotionConfigDatabaseId();
     const notionToken = getNotionToken();
 
     return NextResponse.json({
       success: true,
       validation,
       environment: envInfo,
-      currentDatabaseId,
+      currentLinksDatabaseId,
+      currentConfigDatabaseId,
       notionConfig: {
         token: notionToken ? "set" : "not set",
       },

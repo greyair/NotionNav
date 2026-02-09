@@ -21,6 +21,16 @@ export function isFullPage(page: NotionPage): page is PageObjectResponse {
   return "properties" in page;
 }
 
+export function getPageTitle(properties: NotionPageProperties): string {
+  for (const property of Object.values(properties)) {
+    if (property.type === "title") {
+      return getPlainText(property.title);
+    }
+  }
+
+  return "";
+}
+
 export function getPlainText(items: RichTextItemResponse[] | undefined): string {
   if (!items || items.length === 0) {
     return "";
@@ -87,9 +97,12 @@ export function extractPropertyString(property?: NotionProperty): string {
         return "";
       }
 
-      return property.files[0].type === "external"
-        ? property.files[0].external.url
-        : property.files[0].file.url;
+      const file = property.files[0];
+      return file.type === "external"
+        ? file.external.url
+        : "file" in file
+        ? file.file.url
+        : "";
     default:
       return "";
   }
@@ -131,6 +144,44 @@ export function getPropertyMultiValues(
   return value.split(",").map((item) => item.trim());
 }
 
+export function getPropertyNumber(
+  properties: NotionPageProperties,
+  target: string
+): number | undefined {
+  const names = getPropertyNamesForTarget(target);
+  const property = findPropertyByNames(properties, names);
+
+  if (!property) {
+    return undefined;
+  }
+
+  if (property.type === "number") {
+    return property.number ?? undefined;
+  }
+
+  const value = extractPropertyString(property);
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+export function getPropertyRelationIds(
+  properties: NotionPageProperties,
+  target: string
+): string[] {
+  const names = getPropertyNamesForTarget(target);
+  const property = findPropertyByNames(properties, names);
+
+  if (!property || property.type !== "relation") {
+    return [];
+  }
+
+  return property.relation.map((relation) => relation.id);
+}
+
 export function extractIconValue(icon: NotionIcon): string {
   if (!icon) {
     return "";
@@ -140,7 +191,15 @@ export function extractIconValue(icon: NotionIcon): string {
     return icon.emoji;
   }
 
-  return icon.type === "external" ? icon.external.url : icon.file.url;
+  if (icon.type === "external") {
+    return icon.external.url;
+  }
+
+  if (icon.type === "file") {
+    return icon.file.url;
+  }
+
+  return "";
 }
 
 export function extractCoverUrl(cover: NotionCover): string {

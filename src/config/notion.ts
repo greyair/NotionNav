@@ -1,17 +1,24 @@
 import { Client } from "@notionhq/client";
-import { getNotionDatabaseId, getNotionToken } from "@/utils/env";
+import {
+  getNotionConfigDatabaseId,
+  getNotionLinksDatabaseId,
+  getNotionToken,
+} from "@/utils/env";
 
 // Notion配置
 export const NOTION_CONFIG = {
   // 使用环境变量管理工具获取页面 ID
   get DEFAULT_DATABASE_ID() {
-    return getNotionDatabaseId();
+    return getNotionLinksDatabaseId();
   },
 
   // 如果有多个数据库，可以在这里配置
   DATABASES: {
     get MENU() {
-      return getNotionDatabaseId();
+      return getNotionLinksDatabaseId();
+    },
+    get CONFIG() {
+      return getNotionConfigDatabaseId();
     },
     // 可以添加更多数据库
     // NEWS: "your-news-database-id",
@@ -48,6 +55,16 @@ export const NOTION_PROPERTY_MAPPING = {
 
   // 分类属性
   CATEGORY: ["Category", "category", "Type", "type"],
+
+  // 子分类属性
+  SUBCATEGORY: [
+    "Subcategory",
+    "SubCategory",
+    "subCategory",
+    "subcategory",
+    "Sub Category",
+    "sub category",
+  ],
 
   // 角色权限属性
   ROLES: ["Roles", "roles", "Access", "access", "permissions"],

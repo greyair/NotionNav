@@ -4,19 +4,19 @@
  */
 
 /**
- * 获取 Notion 数据库 ID
- * 优先级：环境变量 > 兼容旧变量
+ * 获取链接 Notion 数据库 ID
  */
-export function getNotionDatabaseId(): string | undefined {
-  return process.env.NOTION_DATABASE_ID || process.env.NOTION_PAGE_ID;
+export function getNotionLinksDatabaseId(): string | undefined {
+  return process.env.NOTION_LINKS_DATABASE_ID;
 }
 
 /**
- * 兼容旧的 Notion 页面 ID 读取
+ * 获取配置 Notion 数据库 ID
  */
-export function getNotionPageId(): string {
-  return getNotionDatabaseId() || "";
+export function getNotionConfigDatabaseId(): string | undefined {
+  return process.env.NOTION_CONFIG_DATABASE_ID;
 }
+
 
 /**
  * 获取 Notion Token（可选）
@@ -43,10 +43,15 @@ export function validateEnvironment(): {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const databaseId = getNotionDatabaseId();
+  const linksDatabaseId = getNotionLinksDatabaseId();
+  const configDatabaseId = getNotionConfigDatabaseId();
 
-  if (!databaseId) {
-    errors.push("NOTION_DATABASE_ID (or NOTION_PAGE_ID) is required");
+  if (!linksDatabaseId) {
+    errors.push("NOTION_LINKS_DATABASE_ID is required");
+  }
+
+  if (!configDatabaseId) {
+    warnings.push("NOTION_CONFIG_DATABASE_ID is not set");
   }
 
   if (!process.env.NOTION_TOKEN) {
@@ -54,8 +59,12 @@ export function validateEnvironment(): {
   }
 
   // 检查环境变量格式
-  if (databaseId && !/^[a-f0-9-]+$/i.test(databaseId)) {
-    errors.push("NOTION_DATABASE_ID format is invalid");
+  if (linksDatabaseId && !/^[a-f0-9-]+$/i.test(linksDatabaseId)) {
+    errors.push("NOTION_LINKS_DATABASE_ID format is invalid");
+  }
+
+  if (configDatabaseId && !/^[a-f0-9-]+$/i.test(configDatabaseId)) {
+    errors.push("NOTION_CONFIG_DATABASE_ID format is invalid");
   }
 
   return {
@@ -71,8 +80,10 @@ export function validateEnvironment(): {
 export function getEnvironmentInfo() {
   return {
     nodeEnv: process.env.NODE_ENV,
-    notionDatabaseId: process.env.NOTION_DATABASE_ID || "not set",
-    notionPageId: process.env.NOTION_PAGE_ID || "not set",
+    notionLinksDatabaseId:
+      process.env.NOTION_LINKS_DATABASE_ID || "not set",
+    notionConfigDatabaseId:
+      process.env.NOTION_CONFIG_DATABASE_ID || "not set",
     notionToken: process.env.NOTION_TOKEN ? "set" : "not set",
     notionActiveUser: process.env.NOTION_ACTIVE_USER ? "set" : "not set",
     isProduction: process.env.NODE_ENV === "production",

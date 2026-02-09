@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const databaseId =
       searchParams.get("databaseId") ||
       searchParams.get("pageId") ||
+      NOTION_CONFIG.DATABASES.MENU ||
       NOTION_CONFIG.DEFAULT_DATABASE_ID;
 
     if (!databaseId) {
@@ -103,6 +104,7 @@ function parsePagesToMenuItems(
     const target = getPropertyValue(properties, "target");
     const status = getPropertyValue(properties, "status") || "active";
     const category = getPropertyValue(properties, "category") || "其他";
+    const subcategory = getPropertyValue(properties, "subcategory") || "";
     const lastEditedTime = page.last_edited_time
       ? Date.parse(page.last_edited_time)
       : 0;
@@ -123,6 +125,7 @@ function parsePagesToMenuItems(
           role.trim()
         ),
         category: category.trim(),
+        subcategory: subcategory.trim() || undefined,
         lastEditedTime,
       });
     } else {
